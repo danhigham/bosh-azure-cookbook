@@ -1,0 +1,3 @@
+#!/bin/bash
+
+azure group delete -v $1 --nowait -q
