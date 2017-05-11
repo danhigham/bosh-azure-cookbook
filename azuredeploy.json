@@ -1,0 +1,249 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "networkSecurityGroups_name": {
+            "defaultValue": "nsg-bosh",
+            "type": "String"
+        },
+        "virtualNetworkName": {
+            "defaultValue": "boshvnet",
+            "type": "String"
+        },
+        "storageAccounts_name": {
+            "defaultValue": "boshblobstore",
+            "type": "String"
+        },
+        "location": {
+            "defaultValue": "westus",
+            "type": "String"
+        },
+        "vmSize": {
+          "type": "string",
+          "defaultValue": "Standard_DS2_v2",
+          "metadata": {
+            "description": "Size of vm"
+          }
+        },
+        "adminUsername": {
+          "type": "string",
+          "defaultValue": "pivotal",
+          "metadata": {
+            "description": "User name for the Virtual Machine."
+          }
+        },
+        "adminSSHKey": {
+          "type": "securestring",
+          "metadata": {
+            "description": "Public SSH key to add to admin user."
+          }
+        },
+        "tenantID": {
+          "type": "string",
+          "defaultValue": "TENANT-ID",
+          "metadata": {
+            "description": "ID of the tenant. See https://github.com/cloudfoundry-incubator/bosh-azure-cpi-release/blob/master/docs/guidance.md"
+          }
+        },
+        "clientID": {
+          "type": "string",
+          "defaultValue": "CLIENT-ID",
+          "metadata": {
+            "description": "ID of the client. See https://github.com/cloudfoundry-incubator/bosh-azure-cpi-release/blob/master/docs/guidance.md"
+          }
+        },
+        "clientSecret": {
+          "type": "securestring",
+          "defaultValue": "CLIENT-SECRET",
+          "metadata": {
+            "description": "secret of the client. See https://github.com/cloudfoundry-incubator/bosh-azure-cpi-release/blob/master/docs/guidance.md"
+          }
+        },
+        "recipeName": {
+          "type": "string",
+          "defaultValue": "none",
+          "metadata": {
+            "description": "Name of the recipe you want to have installed"
+          }
+        }
+
+    },
+    "variables": {
+      "api-version": "2015-06-15",
+      "sshKeyPath": "[concat('/home/',parameters('adminUsername'),'/.ssh/authorized_keys')]",
+      "boshStorageAccountName": "[concat('bosh',uniquestring(resourceGroup().id, deployment().name))]",
+      "vmStorageAccountContainerName": "vhds",
+      "jumpboxNicName": "jumpboxNIC",
+      "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworkName'))]",
+      "subnetRef": "[concat(variables('vnetID'),'/subnets/bosh')]"
+    },
+    "resources": [
+        {
+            "comments": "BOSH NSG",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[parameters('networkSecurityGroups_name')]",
+            "apiVersion": "2016-03-30",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": []
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "BOSH Network",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('virtualNetworkName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.2.0.0/24"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "bosh",
+                        "properties": {
+                            "addressPrefix": "10.2.0.0/24"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "BOSH Storage Account",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('boshStorageAccountName')]",
+            "apiVersion": "2016-01-01",
+            "location": "[parameters('location')]",
+            "tags": {},
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+          "apiVersion": "[variables('api-version')]",
+          "type": "Microsoft.Network/publicIPAddresses",
+          "name": "jumpbox-ip",
+          "location": "[parameters('location')]",
+          "properties": {
+            "publicIPAllocationMethod": "static"
+          }
+        },
+        {
+          "apiVersion": "[variables('api-version')]",
+          "type": "Microsoft.Network/networkInterfaces",
+          "name": "[variables('jumpboxNicName')]",
+          "location": "[parameters('location')]",
+          "dependsOn": [
+            "[concat('Microsoft.Network/publicIPAddresses/', 'jumpbox-ip')]",
+            "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+          ],
+          "properties": {
+            "ipConfigurations": [
+              {
+                "name": "jumpboxIPConfig",
+                "properties": {
+                  "privateIPAllocationMethod": "Dynamic",
+                  "publicIPAddress": {
+                    "id": "[resourceId('Microsoft.Network/publicIPAddresses','jumpbox-ip')]"
+                  },
+                  "subnet": {
+                    "id": "[variables('subnetRef')]"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "apiversion": "[variables('api-version')]",
+          "type": "Microsoft.Compute/virtualMachines",
+          "name": "director-jumpbox",
+          "location": "[parameters('location')]",
+          "dependsOn": [
+            "[concat('Microsoft.Storage/storageAccounts/',variables('boshStorageAccountName'))]",
+            "[concat('Microsoft.Network/networkInterfaces/',variables('jumpboxNicName'))]"
+          ],
+          "properties": {
+            "hardwareProfile": {
+              "vmSize": "[parameters('vmSize')]"
+            },
+            "osProfile": {
+              "computerName": "director-jumpbox",
+              "adminUsername": "[parameters('adminUsername')]",
+              "linuxConfiguration": {
+                "disablePasswordAuthentication": "true",
+                "ssh": {
+                  "publicKeys": [{
+                    "path": "[variables('sshKeyPath')]",
+                    "keyData": "[parameters('adminSSHKey')]"
+                  }]
+                }
+              }
+            },
+            "storageProfile": {
+                "imageReference": {
+                  "publisher": "Canonical",
+                  "offer": "UbuntuServer",
+                  "sku": "14.04.3-LTS",
+                  "version": "latest"
+                },
+                "osDisk": {
+                  "osType": "Linux",
+                  "name": "osdisk",
+                  "createOption": "FromImage",
+                   "vhd": {
+                      "uri": "[concat('http://',variables('boshStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/','director_jumpbox-osdisk.vhd')]"
+                },
+                "caching": "ReadWrite",
+                "diskSizeGB": "120"
+              }
+            },
+            "networkProfile": {
+              "networkInterfaces": [
+                {
+                  "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('jumpboxNicName'))]"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "name": "director-jumpbox/init",
+          "apiVersion": "[variables('api-version')]",
+          "location": "[parameters('location')]",
+          "dependsOn": [
+            "Microsoft.Compute/virtualMachines/director-jumpbox"
+          ],
+          "properties": {
+            "publisher": "Microsoft.OSTCExtensions",
+            "type": "CustomScriptForLinux",
+            "typeHandlerVersion": "1.4",
+            "autoupgradeMinorVersion": false,
+            "settings": {
+              "fileUris": [
+                "https://raw.githubusercontent.com/danhigham/bosh-azure-cookbook/master/deploy-bosh.sh",
+                "https://github.com/danhigham/bosh-azure-cookbook/archive/0.0.1.tar.gz"
+              ]
+            },
+            "protectedSettings": {
+              "commandToExecute": "[concat('./deploy-bosh.sh ', parameters('tenantID'), ' ', parameters('clientID'), ' ', parameters('clientSecret'), ' ', parameters('recipeName'))]"
+            }
+          }
+        }
+      ],
+      "outputs": {
+        "Jumpbox-IP": {
+          "type" : "string",
+          "value": "[reference('jumpbox-ip').ipAddress]"
+        }
+    }
+}

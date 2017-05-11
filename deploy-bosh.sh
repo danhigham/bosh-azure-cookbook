@@ -81,6 +81,10 @@ su -l pivotal sh -c "bosh --tty -e 10.2.0.10 --ca-cert <(bosh int azure-bosh-dir
 adminPassword=$(ruby -ryaml -e "puts YAML::load(open(ARGV.first).read)['admin_password']" /home/pivotal/azure-bosh-director-creds.yml)
 su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secret=$adminPassword"
 
+# Extract the recipe book
+archive=$(ls *.tgz | head -n 1)
+tar -xvzf $archive --exclude='deploy-bosh.sh'
+
 if [ -d "recipes/$recipe" ]; then
   stemcellCount=$(cat recipes/$recipe/index.json | jq -r ".stemcells | length")
   releaseCount=$(cat recipes/$recipe/index.json | jq -r ".releases | length")
