@@ -83,7 +83,7 @@ su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secr
 
 # Extract the recipe book
 archive=$(ls *.tgz | head -n 1)
-tar -xvzf $archive --exclude='deploy-bosh.sh'
+tar -xvzf $archive --exclude='deploy-bosh.sh' --strip 1
 
 if [ -d "recipes/$recipe" ]; then
   stemcellCount=$(cat recipes/$recipe/index.json | jq -r ".stemcells | length")
