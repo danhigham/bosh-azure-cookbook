@@ -97,8 +97,8 @@ if [ -d "recipes/$recipe" ]; then
   done
 
   for i in {0..releaseUbound}; do
-    stemcell=$(cat recipes/$recipe/index.json | jq -r ".releases[$i]")
-    su -l pivotal sh -c "bosh --tty -e bosh-azure upload-release $stemcell"
+    release=$(cat recipes/$recipe/index.json | jq -r ".releases[$i]")
+    su -l pivotal sh -c "bosh --tty -e bosh-azure upload-release $release"
   done
 
  else
