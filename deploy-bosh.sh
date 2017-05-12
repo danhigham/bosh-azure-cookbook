@@ -90,7 +90,7 @@ su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secr
 # Template cloud config file
 storage_account_name=$storageAccount
 premium_storage_account_name="premium$storageAccount"
-sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/"/' cloud_config.template.yml | sh > cloud_config.yml
+sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> cloud_config.yml/' cloud_config.template.yml | sh
 
 # Apply cloud_config
 su -l pivotal sh -c "bosh --tty -e bosh-azure update-cloud-config cloud_config.yml"
