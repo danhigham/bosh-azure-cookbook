@@ -16,7 +16,7 @@ networks:
     reserved:
     - 10.2.0.2-10.2.0.10
     static:
-    - 10.0.0.11-10.0.0.50
+    - 10.2.0.11-10.2.0.50
 vm_types:
 - name: Standard_DS1_v2
   cloud_properties:
@@ -200,7 +200,7 @@ disk_types:
 compilation:
   workers: 4
   network: boshvnet
-  # az: 'null'
+  az: 'null'
   reuse_compilation_vms: true
   vm_type: Standard_F4s
 # vm_extensions:
