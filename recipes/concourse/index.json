@@ -4,6 +4,7 @@
     "https://bosh.io/d/stemcells/bosh-azure-hyperv-ubuntu-trusty-go_agent"
   ],
   "releases": [
-    "https://bosh.io/d/github.com/concourse/concourse"
+    "https://bosh.io/d/github.com/concourse/concourse",
+    "https://bosh.io/d/github.com/cloudfoundry-incubator/garden-runc-release"
   ]
 }

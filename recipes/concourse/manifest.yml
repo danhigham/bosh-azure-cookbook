@@ -1,0 +1,118 @@
+---
+name: concourse
+director_uuid: {{ director_uuid }}
+
+releases:
+- name: concourse
+  version: latest
+- name: garden-runc
+  version: latest
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+
+instance_groups:
+- name: web
+  instances: 1
+  vm_type: Standard_D2_v2
+  stemcell: trusty
+  networks:
+    - name: vip
+      static_ips: {{ poolIP0 }}
+
+  jobs:
+  - name: atc
+    release: concourse
+    properties:
+      # replace with your CI's externally reachable URL, e.g. https://ci.foo.com
+      external_url: https://conscourse.{{ poolIP0 }}.cf.pcfazure.com
+
+      # replace with username/password, or configure GitHub auth
+      basic_auth_username: atc
+      basic_auth_password: passwordgoeshere
+
+      # replace with your SSL cert and key
+      tls_cert: |+
+        -----BEGIN CERTIFICATE-----
+        MIICZzCCAdACCQCfsvrs+PxjCTANBgkqhkiG9w0BAQsFADB4MQswCQYDVQQGEwJV
+        UzELMAkGA1UECAwCT1IxETAPBgNVBAcMCFBvcnRsYW5kMRAwDgYDVQQKDAdQaXZv
+        dGFsMR0wGwYDVQQLDBRQbGF0Zm9ybSBFbmdpbmVlcmluZzEYMBYGA1UEAwwPY2ku
+        cGFhc2xpZmUuY29tMB4XDTE3MDIwNzE5MDU1MFoXDTE4MDIwNzE5MDU1MFoweDEL
+        MAkGA1UEBhMCVVMxCzAJBgNVBAgMAk9SMREwDwYDVQQHDAhQb3J0bGFuZDEQMA4G
+        A1UECgwHUGl2b3RhbDEdMBsGA1UECwwUUGxhdGZvcm0gRW5naW5lZXJpbmcxGDAW
+        BgNVBAMMD2NpLnBhYXNsaWZlLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC
+        gYEAyf+QJyexiSUTEDJTaLU0sRKgV6nYwVhCzBDKOnq4vQDLYvtWasaETixCeDDd
+        yZmIQ960MBWRauFd+Q6lvJ4fabahAnMXZZYL6s04UbtUHzTtv+sgZ/j7Ym5f9dlW
+        7FcdAruqNSRE7vnYT9R6Mi94rq2pPwmPrz9NjErbKfhyqbECAwEAATANBgkqhkiG
+        9w0BAQsFAAOBgQCa6JszCt9w/awx0s0PIkJjoRFd/VeUbVJooq7/ernt5S4Ta691
+        2YXKWThRwhGJKQvKpJt74RoXg8vf5fK+2ZC6JyMfjB+zfRNCGpykLYuohdSjq0lT
+        etF6OsQz9tOs80n7Fzs8WdSOaKVuVFXrEB+xGQHldx11oMCZdFxUoDsoBg==
+        -----END CERTIFICATE-----
+
+      tls_key: |+
+        -----BEGIN RSA PRIVATE KEY-----
+        MIICXAIBAAKBgQDJ/5AnJ7GJJRMQMlNotTSxEqBXqdjBWELMEMo6eri9AMti+1Zq
+        xoROLEJ4MN3JmYhD3rQwFZFq4V35DqW8nh9ptqECcxdllgvqzThRu1QfNO2/6yBn
+        +Ptibl/12VbsVx0Cu6o1JETu+dhP1HoyL3iurak/CY+vP02MStsp+HKpsQIDAQAB
+        AoGBAJv6WafCgNaz6CqDkeCyvANXrLTElHmH29yTwnSxuuFHMcY26h39OMDccF86
+        7Kf1hEFUQLM4lFeBuvzMkLI7L2kkyVtOPmHmz68/RMEhoJQWg/Zgv69UjmlyPzoT
+        /n8xwCC5kJczYiLf+Pji+YDncHfZphpolJFrB7oP1xssHS3ZAkEA48LeuYEyKvGb
+        jiLem28DctTv0WXalVNiIrlDych2KE8PIgtdEqUYUmHl8Jej5xbqnJ31ZfHVmvft
+        gXZ46KHqiwJBAOMK+rN1CQ0F+8NbvkOxE4HKZhEZKNTZzILt2XOf40woj3W3peBt
+        Sm/Whj1FIUiRMyJyO084/XMJa7dje4jg0DMCQAZzPluCjSkqLn2X/zXnrvFRlnkX
+        qVkRQ3Y4SPMt+iqqEoOkTr54bnfmzdxCbyHcREirMIfykVoSK2e/My1jaIECQFPS
+        xeRjnUfVobHquUA8rDsLAsvlQhHzp3HfZp0ttrlzcCPB/dfyAb1wsncEgtlL4lkh
+        W4xQOiKyo7Y9YGqUtckCQEH0yrhGSdM9+9h8SnnKco06GjYT7If5oAdITgsgfXf+
+        5KD4aMFJhZYnBh6IQc/TxLXPt5gJ05I2qRUttB/235k=
+        -----END RSA PRIVATE KEY-----
+
+      postgresql_database: &atc_db atc
+  - name: tsa
+    release: concourse
+    properties: {}
+
+- name: db
+  instances: 1
+
+  vm_type: Standard_D2_v2
+  stemcell: trusty
+  persistent_disk_type: 5120
+  networks:
+    - name: boshvnet
+  jobs:
+  - name: postgresql
+    release: concourse
+    properties:
+      databases:
+      - name: *atc_db
+        role: atc
+        password: passwordgoeshere
+
+- name: worker
+  instances: 4
+  vm_type: Standard_D4_v2
+  stemcell: trusty
+  networks:
+    - name: boshvnet
+  jobs:
+  - name: groundcrew
+    release: concourse
+    properties: {}
+  - name: baggageclaim
+    release: concourse
+    properties: {}
+  - name: garden
+    release: garden-runc
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+
+update:
+  canaries: 1
+  max_in_flight: 1
+  serial: false
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
