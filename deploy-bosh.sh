@@ -1,11 +1,6 @@
 #!/bin/bash
 set -x
 
-template_file(){
-  template_path=$1
-  return $(sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/"/' $1 | sh)
-}
-
 apt-get update
 apt-get install -y git libssl-dev libffi-dev python-dev jq build-essential ruby
 
@@ -91,6 +86,7 @@ su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secr
 storage_account_name=$storageAccount
 premium_storage_account_name="premium$storageAccount"
 sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> cloud_config.yml/' cloud_config.template.yml | sh
+cp cloud_config.yml $HOME
 
 # Apply cloud_config
 su -l pivotal sh -c "bosh --tty -e bosh-azure update-cloud-config cloud_config.yml"
