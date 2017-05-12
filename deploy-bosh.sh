@@ -56,7 +56,7 @@ az storage container create --account-name $storageAccount --account-key $storag
 # create stemcell
 az storage table create --account-name $storageAccount --account-key $storageKey -n stemcells
 
-# deploy
+# Deploy director
 
 su -l pivotal sh -c "
 bosh --tty create-env /tmp/bosh-deployment/bosh.yml \
@@ -82,9 +82,14 @@ su -l pivotal sh -c "bosh --tty -e 10.2.0.10 --ca-cert <(bosh int azure-bosh-dir
 adminPassword=$(ruby -ryaml -e "puts YAML::load(open(ARGV.first).read)['admin_password']" /home/pivotal/azure-bosh-director-creds.yml)
 su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secret=$adminPassword"
 
+# Get IPs from public pool
+poolIP0=$(az network public-ip list | jq -r "map(select(.resourceGroup == \"$vmResGroup\") | select(.tags == {\"poolIp\": \"True\"}))[0].ipAddress")
+
 # Template cloud config file
 storage_account_name=$storageAccount
 premium_storage_account_name="premium$storageAccount"
+director_uuid=$(bosh -n -e bosh-azure environment --json | jq -r ".Tables[0].Rows[0].uuid")
+
 working_directory=$(pwd)
 sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" > cloud_config.yml/' $working_directory/cloud_config.template.yml | sh
 cp cloud_config.yml $HOME
@@ -117,6 +122,13 @@ if [ -d "recipes/$recipe" ]; then
     su -l pivotal sh -c "bosh --tty -e bosh-azure upload-release $release"
     i=$(($i + 1))
   done
+
+  # Template the manifest
+  sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" > manifest.yml/' $working_directory/recipes/$recipe/manifest.yml | sh
+  cp manifest.yml $HOME
+
+  # Deploy
+  su -l pivotal sh -c "bosh -n --tty -e bosh-azure deploy manifest.yml"
 
  else
    echo "Recipe '$recipe' does not exist"
