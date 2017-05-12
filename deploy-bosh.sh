@@ -1,5 +1,11 @@
 #!/bin/bash
 set -x
+
+template_file(){
+  template_path=$1
+  return $(sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/"/' $1 | sh)
+}
+
 apt-get update
 apt-get install -y git libssl-dev libffi-dev python-dev jq build-essential ruby
 
@@ -81,8 +87,16 @@ su -l pivotal sh -c "bosh --tty -e 10.2.0.10 --ca-cert <(bosh int azure-bosh-dir
 adminPassword=$(ruby -ryaml -e "puts YAML::load(open(ARGV.first).read)['admin_password']" /home/pivotal/azure-bosh-director-creds.yml)
 su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secret=$adminPassword"
 
+# Template cloud config file
+storage_account_name=$storageAccount
+premium_storage_account_name="premium$storageAccount"
+sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/"/' cloud_config.template.yml | sh > cloud_config.yml
+
+# Apply cloud_config
+su -l pivotal sh -c "bosh --tty -e bosh-azure update-cloud-config cloud_config.yml"
+
 # Extract the recipe book
-archive=$(ls *.tgz | head -n 1)
+archive=$(ls *.tar.gz | head -n 1)
 tar -xvzf $archive --exclude='deploy-bosh.sh' --strip 1
 
 if [ -d "recipes/$recipe" ]; then
@@ -91,14 +105,20 @@ if [ -d "recipes/$recipe" ]; then
   stemcellUbound=$(($stemcellCount-1))
   releaseUbound=$(($releaseCount-1))
 
-  for i in {0..stemcellUbound}; do
+  # Upload stemcells
+  i=0
+  while [ "$i" -le "$stemcellUbound" ]; do
     stemcell=$(cat recipes/$recipe/index.json | jq -r ".stemcells[$i]")
     su -l pivotal sh -c "bosh --tty -e bosh-azure upload-stemcell $stemcell"
+    i=$(($i + 1))
   done
 
-  for i in {0..releaseUbound}; do
+  # Upload releases
+  i=0
+  while [ "$i" -le "$releaseUbound" ]; do
     release=$(cat recipes/$recipe/index.json | jq -r ".releases[$i]")
     su -l pivotal sh -c "bosh --tty -e bosh-azure upload-release $release"
+    i=$(($i + 1))
   done
 
  else
