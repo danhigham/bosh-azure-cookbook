@@ -82,24 +82,20 @@ su -l pivotal sh -c "bosh --tty -e 10.2.0.10 --ca-cert <(bosh int azure-bosh-dir
 adminPassword=$(ruby -ryaml -e "puts YAML::load(open(ARGV.first).read)['admin_password']" /home/pivotal/azure-bosh-director-creds.yml)
 su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secret=$adminPassword"
 
-# Get IPs from public pool
-poolIP0=$(az network public-ip list | jq -r "map(select(.resourceGroup == \"$vmResGroup\") | select(.tags == {\"poolIp\": \"True\"}))[0].ipAddress")
+# Extract the recipe book
+archive=$(ls *.tar.gz | head -n 1)
+tar -xvzf $archive --exclude='deploy-bosh.sh' --strip 1
 
 # Template cloud config file
 storage_account_name=$storageAccount
 premium_storage_account_name="premium$storageAccount"
-director_uuid=$(bosh -n -e bosh-azure environment --json | jq -r ".Tables[0].Rows[0].uuid")
 
 working_directory=$(pwd)
-sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" > cloud_config.yml/' $working_directory/cloud_config.template.yml | sh
+sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> cloud_config.yml/' $working_directory/cloud_config.template.yml | sh
 cp cloud_config.yml $HOME
 
 # Apply cloud_config
 su -l pivotal sh -c "bosh -n --tty -e bosh-azure update-cloud-config cloud_config.yml"
-
-# Extract the recipe book
-archive=$(ls *.tar.gz | head -n 1)
-tar -xvzf $archive --exclude='deploy-bosh.sh' --strip 1
 
 if [ -d "recipes/$recipe" ]; then
   stemcellCount=$(cat recipes/$recipe/index.json | jq -r ".stemcells | length")
@@ -123,8 +119,13 @@ if [ -d "recipes/$recipe" ]; then
     i=$(($i + 1))
   done
 
+  # Get IPs from public pool
+  poolIP0=$(az network public-ip list | jq -r "map(select(.resourceGroup == \"$vmResGroup\") | select(.tags == {\"poolIp\": \"True\"}))[0].ipAddress")
+
   # Template the manifest
-  sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" > manifest.yml/' $working_directory/recipes/$recipe/manifest.yml | sh
+  director_uuid=$(bosh -n -e bosh-azure environment --json | jq -r ".Tables[0].Rows[0].uuid")
+
+  sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> manifest.yml/' $working_directory/recipes/$recipe/manifest.yml | sh
   cp manifest.yml $HOME
 
   # Deploy
