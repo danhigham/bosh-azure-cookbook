@@ -16,18 +16,23 @@ stemcells:
 instance_groups:
 - name: web
   instances: 1
-  vm_type: Standard_D2_v2
+  vm_type: Standard_DS2_v2
   stemcell: trusty
   networks:
     - name: vip
-      static_ips: {{ poolIP0 }}
-
+      static_ips: [{{ poolIP0 }}]
+    - name: boshvnet
+      default: [dns, gateway]
   jobs:
   - name: atc
     release: concourse
     properties:
+
+      bind_port: 80
+      tls_bind_port: 443
+
       # replace with your CI's externally reachable URL, e.g. https://ci.foo.com
-      external_url: https://conscourse.{{ poolIP0 }}.cf.pcfazure.com
+      external_url: https://concourse.{{ poolIP0 }}.cf.pcfazure.com
 
       # replace with username/password, or configure GitHub auth
       basic_auth_username: atc
@@ -76,7 +81,7 @@ instance_groups:
 - name: db
   instances: 1
 
-  vm_type: Standard_D2_v2
+  vm_type: Standard_DS2_v2
   stemcell: trusty
   persistent_disk_type: 5120
   networks:
@@ -92,7 +97,7 @@ instance_groups:
 
 - name: worker
   instances: 4
-  vm_type: Standard_D4_v2
+  vm_type: Standard_DS4_v2
   stemcell: trusty
   networks:
     - name: boshvnet

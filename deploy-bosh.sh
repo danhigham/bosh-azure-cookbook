@@ -43,7 +43,8 @@ az login --username "$appId" --service-principal --tenant "$tenantId" --password
 vmJson=$(az vm list | jq --arg pVmId "$vmId" 'map(select(.vmId == $pVmId))')
 vmResGroup=$(echo $vmJson | jq -r '.[0].resourceGroup')
 
-storageAccount=$(az storage account list -g $vmResGroup | jq -r '.[0].name')
+export storageAccount=$(az storage account list -g $vmResGroup | jq -r '.[0].name')
+export premiumstorageAccount=$(az storage account list -g $vmResGroup | jq -r '.[1].name')
 
 storageKey=$(az storage account keys list -n $storageAccount -g $vmResGroup | jq -r '.[0].value')
 
@@ -86,10 +87,6 @@ su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secr
 archive=$(ls *.tar.gz | head -n 1)
 tar -xvzf $archive --exclude='deploy-bosh.sh' --strip 1
 
-# Template cloud config file
-storage_account_name=$storageAccount
-premium_storage_account_name="premium$storageAccount"
-
 working_directory=$(pwd)
 sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> cloud_config.yml/' $working_directory/cloud_config.template.yml | sh
 cp cloud_config.yml $HOME
@@ -120,16 +117,16 @@ if [ -d "recipes/$recipe" ]; then
   done
 
   # Get IPs from public pool
-  poolIP0=$(az network public-ip list | jq -r "map(select(.resourceGroup == \"$vmResGroup\") | select(.tags == {\"poolIp\": \"True\"}))[0].ipAddress")
+  export poolIP0=$(az network public-ip list | jq -r "map(select(.resourceGroup == \"${vmResGroup,,}\") | select(.tags == {\"poolIp\": \"True\"}))[0].ipAddress")
 
   # Template the manifest
-  director_uuid=$(bosh -n -e bosh-azure environment --json | jq -r ".Tables[0].Rows[0].uuid")
+  export director_uuid=$(bosh -n -e bosh-azure environment --json | jq -r ".Tables[0].Rows[0].uuid")
 
   sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> manifest.yml/' $working_directory/recipes/$recipe/manifest.yml | sh
   cp manifest.yml $HOME
 
   # Deploy
-  su -l pivotal sh -c "bosh -n --tty -e bosh-azure deploy manifest.yml"
+  su -l pivotal sh -c "bosh -n --tty -e bosh-azure deploy -d $recipe manifest.yml"
 
  else
    echo "Recipe '$recipe' does not exist"

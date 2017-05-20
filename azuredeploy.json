@@ -72,6 +72,7 @@
       "api-version": "2015-06-15",
       "sshKeyPath": "[concat('/home/',parameters('adminUsername'),'/.ssh/authorized_keys')]",
       "boshStorageAccountName": "[concat('bosh',uniquestring(resourceGroup().id, deployment().name))]",
+      "boshPremiumStorageAccountName": "[concat('premiumbosh',uniquestring(resourceGroup().id, deployment().name))]",
       "vmStorageAccountContainerName": "vhds",
       "jumpboxNicName": "jumpboxNIC",
       "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworkName'))]",
@@ -85,7 +86,35 @@
             "apiVersion": "2016-03-30",
             "location": "[parameters('location')]",
             "properties": {
-                "securityRules": []
+                "securityRules": [
+                  {
+                      "name": "https",
+                      "properties": {
+                          "protocol": "TCP",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "443",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 100,
+                          "direction": "Inbound"
+                      }
+                  },
+                  {
+                      "name": "http",
+                      "properties": {
+                          "protocol": "TCP",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "80",
+                          "sourceAddressPrefix": "*",
+                          "destinationAddressPrefix": "*",
+                          "access": "Allow",
+                          "priority": 110,
+                          "direction": "Inbound"
+                      }
+                  }
+
+                ]
             },
             "dependsOn": []
         },
@@ -128,12 +157,39 @@
             "dependsOn": []
         },
         {
+            "comments": "BOSH Storage Account",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Premium_LRS",
+                "tier": "Premium"
+            },
+            "kind": "Storage",
+            "name": "[variables('boshPremiumStorageAccountName')]",
+            "apiVersion": "2016-01-01",
+            "location": "[parameters('location')]",
+            "tags": {},
+            "properties": {},
+            "dependsOn": []
+        },
+        {
           "apiVersion": "[variables('api-version')]",
           "type": "Microsoft.Network/publicIPAddresses",
           "name": "jumpbox-ip",
           "location": "[parameters('location')]",
           "properties": {
             "publicIPAllocationMethod": "static"
+          }
+        },
+        {
+          "apiVersion": "[variables('api-version')]",
+          "type": "Microsoft.Network/publicIPAddresses",
+          "name": "pool-ip-1",
+          "location": "[parameters('location')]",
+          "properties": {
+            "publicIPAllocationMethod": "static"
+          },
+          "tags": {
+            "poolIp": true
           }
         },
         {
@@ -231,7 +287,7 @@
             "settings": {
               "fileUris": [
                 "https://raw.githubusercontent.com/danhigham/bosh-azure-cookbook/master/deploy-bosh.sh",
-                "https://github.com/danhigham/bosh-azure-cookbook/archive/0.0.1.tar.gz"
+                "https://github.com/danhigham/bosh-azure-cookbook/archive/0.0.4.tar.gz"
               ]
             },
             "protectedSettings": {
