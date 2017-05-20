@@ -24,6 +24,25 @@ instance_groups:
     - name: boshvnet
       default: [dns, gateway]
   jobs:
+  - name: db
+    instances: 1
+
+    vm_type: Standard_DS2_v2
+    stemcell: trusty
+    persistent_disk_type: 5120
+    networks:
+      - name: boshvnet
+    jobs:
+    - name: postgresql
+      release: concourse
+      properties:
+        databases:
+        - name: &atc_db atc
+          role: atc
+          password: passwordgoeshere
+    update:
+      serial: true
+
   - name: atc
     release: concourse
     properties:
@@ -73,27 +92,11 @@ instance_groups:
         5KD4aMFJhZYnBh6IQc/TxLXPt5gJ05I2qRUttB/235k=
         -----END RSA PRIVATE KEY-----
 
-      postgresql_database: &atc_db atc
+      postgresql_database: *atc_db
   - name: tsa
     release: concourse
     properties: {}
 
-- name: db
-  instances: 1
-
-  vm_type: Standard_DS2_v2
-  stemcell: trusty
-  persistent_disk_type: 5120
-  networks:
-    - name: boshvnet
-  jobs:
-  - name: postgresql
-    release: concourse
-    properties:
-      databases:
-      - name: *atc_db
-        role: atc
-        password: passwordgoeshere
 
 - name: worker
   instances: 4
