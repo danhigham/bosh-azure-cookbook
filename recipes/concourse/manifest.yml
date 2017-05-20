@@ -14,6 +14,25 @@ stemcells:
   version: latest
 
 instance_groups:
+- name: db
+  instances: 1
+
+  vm_type: Standard_DS2_v2
+  stemcell: trusty
+  persistent_disk_type: 5120
+  networks:
+    - name: boshvnet
+  jobs:
+  - name: postgresql
+    release: concourse
+    properties:
+      databases:
+      - name: &atc_db atc
+        role: atc
+        password: passwordgoeshere
+  update:
+    serial: true
+
 - name: web
   instances: 1
   vm_type: Standard_DS2_v2
@@ -24,24 +43,6 @@ instance_groups:
     - name: boshvnet
       default: [dns, gateway]
   jobs:
-  - name: db
-    instances: 1
-
-    vm_type: Standard_DS2_v2
-    stemcell: trusty
-    persistent_disk_type: 5120
-    networks:
-      - name: boshvnet
-    jobs:
-    - name: postgresql
-      release: concourse
-      properties:
-        databases:
-        - name: &atc_db atc
-          role: atc
-          password: passwordgoeshere
-    update:
-      serial: true
 
   - name: atc
     release: concourse
