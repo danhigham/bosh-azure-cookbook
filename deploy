@@ -1,3 +1,39 @@
 #!/bin/bash
 azure group create -n "$1" -l "West US"
-azure group deployment create -f azuredeploy.json -e azuredeploy.parameters.json -v $1 boshdeploy --json
+azure group deployment create -f azuredeploy.json -e azuredeploy.parameters.json $1 boshdeploy > /dev/null 2>&1 &
+
+vmCount=0
+printf "Waiting for jumpbox "
+while [ $vmCount -lt 1 ]
+do
+  printf "."
+  vmCount=$(azure vm list -g $1 --json | jq -r "length")
+  sleep 5
+done
+printf " done\n"
+
+jumpboxIPCount=0
+printf "Waiting for IP Configuration "
+while [ $jumpboxIPCount -lt 1 ]
+do
+  printf "."
+  jumpboxIPCount=$(azure vm list-ip-address -g $1 --json | jq -r ".[0].networkProfile.networkInterfaces[0].expanded.ipConfigurations | length")
+  sleep 5
+done
+printf " done\n"
+
+jumpboxIP=$(azure vm list-ip-address -g $1 --json | jq -r ".[0].networkProfile.networkInterfaces[0].expanded.ipConfigurations[0].publicIPAddress.expanded.ipAddress")
+
+
+portSuccess=1
+printf "Waiting for SSH "
+while  [ $portSuccess -gt 0 ]
+do
+  printf "."
+  nc -v -z -w2 $jumpboxIP 22 > /dev/null 2>&1
+  portSuccess=$?
+  sleep 5
+done
+printf " done\n"
+
+ssh -oStrictHostKeyChecking=no pivotal@$jumpboxIP
