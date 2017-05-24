@@ -53,6 +53,7 @@ sub=$(az account list | jq -r '.[0].id')
 # create containers
 az storage container create --account-name $storageAccount --account-key $storageKey -n bosh --public-access off
 az storage container create --account-name $storageAccount --account-key $storageKey -n stemcell --public-access blob
+az storage container create --account-name $storageAccount --account-key $storageKey -n deploymentcreds --public-access off
 
 # create stemcell
 az storage table create --account-name $storageAccount --account-key $storageKey -n stemcells
@@ -130,6 +131,9 @@ if [ -d "recipes/$recipe" ]; then
 
   # Deploy
   su -l pivotal sh -c "bosh -n --tty -e bosh-azure deploy -l creds.yml -d $recipe manifest.yml"
+
+  # Copy creds up
+  az storage blob upload -c deploymentcreds -f /home/pivotal/creds.yml -n creds.yml --account-key $storageKey --account-name $storageAccount
 
  else
    echo "Recipe '$recipe' does not exist"
