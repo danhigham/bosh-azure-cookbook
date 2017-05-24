@@ -18,7 +18,7 @@ variables:
   type: password
 - name: atc_user_password
   type: password
-- name: concourse-ca
+- name: concourse_ca
   type: certificate
   options:
     is_ca: true
