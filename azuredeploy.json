@@ -183,7 +183,7 @@
         {
           "apiVersion": "[variables('api-version')]",
           "type": "Microsoft.Network/publicIPAddresses",
-          "name": "pool-ip-1",
+          "name": "pool-ip-0",
           "location": "[parameters('location')]",
           "properties": {
             "publicIPAllocationMethod": "static"
@@ -300,6 +300,10 @@
         "Jumpbox-IP": {
           "type" : "string",
           "value": "[reference('jumpbox-ip').ipAddress]"
+        },
+        "PoolIP0": {
+          "type" : "string",
+          "value": "[reference('pool-ip-0').ipAddress]"
         }
     }
 }
