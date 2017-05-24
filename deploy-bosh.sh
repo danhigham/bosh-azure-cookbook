@@ -125,8 +125,11 @@ if [ -d "recipes/$recipe" ]; then
   sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> manifest.yml/' $working_directory/recipes/$recipe/manifest.yml | sh
   cp manifest.yml $HOME
 
+  # Interpolate manifest
+  su -l pivotal sh -c "bosh -n --tty int manifest.yml --vars-store=creds.yml"
+
   # Deploy
-  su -l pivotal sh -c "bosh -n --tty -e bosh-azure deploy -d $recipe manifest.yml"
+  su -l pivotal sh -c "bosh -n --tty -e bosh-azure deploy -l creds.yml -d $recipe manifest.yml"
 
  else
    echo "Recipe '$recipe' does not exist"
