@@ -1,0 +1,52 @@
+---
+name: dockerhost
+
+releases:
+- name: docker
+  version: latest
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+
+instance_groups:
+- name: docker
+  instances: 1
+  persistent_disk: 102400
+  vm_type: Standard_DS4_v2
+  stemcell: trusty
+  networks:
+    - name: vip
+      static_ips: [{{ poolIP0 }}]
+    - name: boshvnet
+      default: [dns, gateway]
+  jobs:
+  - name: docker
+    release: docker
+    properties:
+      tcp_address: {{poolIP0}}
+      tls_cacert: "((docker-tls.ca))"
+      tls_cert: "((docker-tls.certificate))"
+      tls_key: "((docker-tls.private_key))"
+
+variables:
+- name: docker-ca
+  type: certificate
+  options:
+    is_ca: true
+    common_name: dockerCA
+- name: docker-tls
+  type: certificate
+  options:
+    ca: docker-ca
+    common_name: docker
+    extended_key_usage:
+    - client_auth
+
+update:
+  canaries: 0
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
+  max_in_flight: 32
+  serial: false
