@@ -1,0 +1,129 @@
+name: kubo
+
+releases:
+- name: etcd
+  version: latest
+- name: kubo
+  version: latest
+- name: docker
+  version: latest
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+
+variables:
+- name: kubo-admin-password
+  type: password
+- name: kubelet-password
+  type: password
+- name: kubo-ca
+  type: certificate
+  options:
+    is_ca: true
+    common_name: kuboCA
+- name: kubo-tls
+  type: certificate
+  options:
+    ca: kubo-ca
+    common_name: {{ poolIP0 }}
+    alternative_names:
+      - kubo.{{ poolIP0 }}.cf.pcfazure.com
+      - {{ poolIP0 }}
+      - 127.0.0.1
+
+instance_groups:
+- name: etcd
+  instances: 3
+  networks:
+  - name: &network-name boshvnet
+  jobs:
+  - name: etcd
+    release: etcd
+    properties:
+      etcd:
+        require_ssl: false
+        peer_require_ssl: false
+  stemcell: trusty
+  vm_type: Standard_DS2_v2
+  persistent_disk_type: 5120premium
+
+- name: master
+  instances: 2
+  networks:
+  - name: *network-name
+  - name: vip
+    static_ips: [{{ poolIP0 }}]
+
+  jobs:
+  - name: kubernetes-api
+    release: kubo
+    properties:
+      admin-username: admin
+      admin-password: ((kubo-admin-password))
+      kubelet-password: ((kubelet-password))
+      tls:
+        kubernetes: ((tls-kubernetes))
+  - name: kubeconfig
+    release: kubo
+    properties:
+      kubernetes-api-url: &kubo_url "https://kubo.{{ poolIP0 }}.cf.pcfazure.com:8443"
+      kubelet-password: ((kubelet-password))
+      tls:
+        kubernetes: ((kubo-tls))
+  - name: kubernetes-controller-manager
+    release: kubo
+  - name: kubernetes-scheduler
+    release: kubo
+  - name: kubernetes-system-specs
+    release: kubo
+    properties:
+      kubernetes-api-url: *kubo_url
+  stemcell: trusty
+  vm_type: Standard_DS2_v2
+
+- name: worker
+  instances: 3
+  networks:
+  - name: *network-name
+  jobs:
+  - name: flanneld
+    release: kubo
+  - name: docker
+    release: docker
+    properties:
+      docker:
+        flannel: true
+        iptables: false
+        ip_masq: false
+        log_level: error
+        storage_driver: overlay
+      env: {}
+  - name: kubeconfig
+    release: kubo
+    properties:
+      kubernetes-api-url: *kubo_url
+      kubelet-password: ((kubelet-password))
+      tls:
+        kubernetes: ((kubo-tls))
+  - name: kubelet
+    release: kubo
+    properties:
+      kubernetes-api-url: *kubo_url
+      tls:
+        kubelet: ((tls-kubelet))
+  - name: kubernetes-proxy
+    release: kubo
+    properties:
+      kubernetes-api-url: *kubo_url
+  stemcell: trusty
+  vm_type: Standard_DS2_v2
+  persistent_disk_type: 10240premium
+
+update:
+  canaries: 1
+  max_in_flight: 1
+  serial: true
+  canary_watch_time: 1000-30000
+  update_watch_time: 1000-30000

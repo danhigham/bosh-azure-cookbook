@@ -152,9 +152,17 @@ disk_types:
 - name: '5120'
   disk_size: 5120
   cloud_properties: {}
+- name: '5120premium'
+  disk_size: 5120
+  cloud_properties:
+    storage_account_name: "{{ premiumstorageAccount }}"
 - name: '10240'
   disk_size: 10240
   cloud_properties: {}
+- name: '10240premium'
+  disk_size: 10240
+  cloud_properties:
+    storage_account_name: "{{ premiumstorageAccount }}"
 - name: '20480'
   disk_size: 20480
   cloud_properties: {}
