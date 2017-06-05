@@ -33,6 +33,14 @@ variables:
       - {{ poolIP0 }}
       - 127.0.0.1
 
+- name: kubelet-tls
+  type: certificate
+  options:
+    ca: kubo-ca
+    common_name: kubelet
+    extended_key_usage:
+    - client_auth
+
 instance_groups:
 - name: etcd
   instances: 3
@@ -53,6 +61,7 @@ instance_groups:
   instances: 2
   networks:
   - name: *network-name
+    default: [dns, gateway]
   - name: vip
     static_ips: [{{ poolIP0 }}]
 
@@ -64,7 +73,7 @@ instance_groups:
       admin-password: ((kubo-admin-password))
       kubelet-password: ((kubelet-password))
       tls:
-        kubernetes: ((tls-kubernetes))
+        kubernetes: ((kubo-tls))
   - name: kubeconfig
     release: kubo
     properties:
@@ -112,7 +121,7 @@ instance_groups:
     properties:
       kubernetes-api-url: *kubo_url
       tls:
-        kubelet: ((tls-kubelet))
+        kubelet: ((kubelet-tls))
   - name: kubernetes-proxy
     release: kubo
     properties:
