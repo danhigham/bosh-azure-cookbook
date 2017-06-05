@@ -1,5 +1,6 @@
 ---
-name: dockerhost
+name: docker
+director_uuid: {{ director_uuid }}
 
 releases:
 - name: docker
@@ -25,10 +26,10 @@ instance_groups:
   - name: docker
     release: docker
     properties:
-      tcp_address: {{poolIP0}}
-      tls_cacert: "((docker-tls.ca))"
-      tls_cert: "((docker-tls.certificate))"
-      tls_key: "((docker-tls.private_key))"
+      tcp_address: 0.0.0.0
+      tls_cacert: ((docker-tls.ca))
+      tls_cert: ((docker-tls.certificate))
+      tls_key: ((docker-tls.private_key))
 
 variables:
 - name: docker-ca
