@@ -27,10 +27,10 @@ variables:
   type: certificate
   options:
     ca: kubo-ca
-    common_name: {{ poolIP0 }}
+    common_name: {{ lbIPAddress }}
     alternative_names:
-      - kubo.{{ poolIP0 }}.cf.pcfazure.com
-      - {{ poolIP0 }}
+      - kubo.{{ lbIPAddress }}.cf.pcfazure.com
+      - {{ lbIPAddress }}
       - 127.0.0.1
 
 - name: kubelet-tls
@@ -58,13 +58,12 @@ instance_groups:
   persistent_disk_type: 5120premium
 
 - name: master
-  instances: 2
+  instances: 1
   networks:
   - name: *network-name
     default: [dns, gateway]
-  - name: vip
-    static_ips: [{{ poolIP0 }}]
-
+    cloud_properties:
+      load_balancer: {{ lbName }}
   jobs:
   - name: kubernetes-api
     release: kubo
@@ -77,7 +76,7 @@ instance_groups:
   - name: kubeconfig
     release: kubo
     properties:
-      kubernetes-api-url: &kubo_url "https://kubo.{{ poolIP0 }}.cf.pcfazure.com:8443"
+      kubernetes-api-url: &kubo_url "https://kubo.{{ lbIPAddress }}.cf.pcfazure.com:8443"
       kubelet-password: ((kubelet-password))
       tls:
         kubernetes: ((kubo-tls))

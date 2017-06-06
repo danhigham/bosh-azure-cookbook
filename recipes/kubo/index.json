@@ -7,5 +7,17 @@
     "https://storage.googleapis.com/kubo-etcd/kubo-etcd-release.108%2Bdev.2.tgz",
     "https://boshreleases.blob.core.windows.net/cookbookreleases/kubo.tgz",
     "https://bosh.io/d/github.com/cf-platform-eng/docker-boshrelease?v=28.0.1"
-  ]
+  ],
+  "infra": {
+    "loadBalancer" : {
+      "name": "kubo-lb",
+      "rules": [
+        {
+          "externalPort": 8443,
+          "internalPort": 8443,
+          "protocol": "TCP"
+        }
+      ]
+    }
+  }
 }

@@ -100,6 +100,7 @@ if [ -d "recipes/$recipe" ]; then
   releaseCount=$(cat recipes/$recipe/index.json | jq -r ".releases | length")
   stemcellUbound=$(($stemcellCount-1))
   releaseUbound=$(($releaseCount-1))
+  loadBalancer=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer | length")
 
   # Upload stemcells
   i=0
@@ -116,6 +117,29 @@ if [ -d "recipes/$recipe" ]; then
     su -l pivotal sh -c "bosh --tty -e bosh-azure upload-release $release"
     i=$(($i + 1))
   done
+
+  # Create load balancer if required
+  if [ "$loadBalancer" -gt 0 ]; then
+    export lbName=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.name")
+    export ipConfig=$(az network lb create -g $vmResGroup -n $lbName --public-ip-address-allocation static | jq ".loadBalancer.frontendIPConfigurations[0].name")
+    export lbIPAddress=$(az network public-ip list -g $vmResGroup --query "[?ipConfiguration.id=='/subscriptions/$sub/resourceGroups/kubo/providers/Microsoft.Network/loadBalancers/$lbName/frontendIPConfigurations/$ipConfig'].ipAddress" --output tsv)
+
+    lbRuleCount=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules | length")
+
+    # Configure forwarding rules for lb
+    i=0
+    while [ "$i" -le "$lbRuleCount" ]; do
+
+      externalPort=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].externalPort")
+      internalPort=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].internalPort")
+      protocol=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].protocol")
+
+      az network lb rule create -g $vmResGroup --lb-name $lbName -n MyLbRule --protocol $protocol --frontend-port $externalPort --backend-port $internalPort
+
+      i=$(($i + 1))
+    done
+
+  fi
 
   # Get IPs from public pool
   export poolIP0=$(az network public-ip list | jq -r "map(select(.resourceGroup == \"${vmResGroup,,}\") | select(.tags == {\"poolIp\": \"True\"}))[0].ipAddress")
