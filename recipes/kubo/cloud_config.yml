@@ -42,6 +42,15 @@ vm_types:
     storage_account_name: "{{ premiumstorageAccount }}"
     load_balancer: {{ lb-name }}
 
+- name: Standard_F4s
+  cloud_properties:
+    instance_type: Standard_F4s
+    root_disk:
+      size: 68608
+    ephemeral_disk:
+      use_root_disk: true
+    storage_account_name: "{{ premiumstorageAccount }}"
+
 disk_types:
 - name: '1024'
   disk_size: 1024
