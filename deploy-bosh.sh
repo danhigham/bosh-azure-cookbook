@@ -130,7 +130,9 @@ if [ -d "recipes/$recipe" ]; then
       protocol=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].protocol")
       ruleName=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].name")
 
+      # create load balancer rule along with matching NSG ingress rule
       az network lb rule create -g $vmResGroup --lb-name $lbName -n $ruleName --protocol $protocol --frontend-port $externalPort --backend-port $internalPort
+      az network nsg rule create -g $vmResGroup --nsg-name nsg-bosh --protocol $protocol --destination-port-range $externalPort --priority $(($i + 2000)) -n $ruleName
 
       i=$(($i + 1))
     done
