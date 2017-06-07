@@ -13,6 +13,7 @@
       "name": "kubo-lb",
       "rules": [
         {
+          "name": "kubo-api",
           "externalPort": 8443,
           "internalPort": 8443,
           "protocol": "TCP"

@@ -1,0 +1,115 @@
+---
+networks:
+- name: vip
+  type: vip
+  cloud_properties:
+    resource_group_name: {{ vmResGroup }}
+
+- name: boshvnet
+  type: manual
+
+  subnets:
+  - dns:
+    - 168.63.129.16
+    range: 10.2.0.0/24
+    gateway: 10.2.0.1
+    cloud_properties:
+      virtual_network_name: boshvnet
+      subnet_name: bosh
+    reserved:
+    - 10.2.0.2-10.2.0.10
+    static:
+    - 10.2.0.11-10.2.0.50
+
+vm_types:
+
+- name: default
+  cloud_properties:
+    instance_type: Standard_DS3_v2
+    root_disk:
+      size: 207872
+    ephemeral_disk:
+      use_root_disk: true
+    storage_account_name: "{{ premiumstorageAccount }}"
+
+- name: default_load_balanced
+  cloud_properties:
+    instance_type: Standard_DS2_v2
+    root_disk:
+      size: 105472
+    ephemeral_disk:
+      use_root_disk: true
+    storage_account_name: "{{ premiumstorageAccount }}"
+    load_balancer: {{ lb-name }}
+
+disk_types:
+- name: '1024'
+  disk_size: 1024
+  cloud_properties: {}
+- name: '2048'
+  disk_size: 2048
+  cloud_properties: {}
+- name: '5120'
+  disk_size: 5120
+  cloud_properties: {}
+- name: '5120premium'
+  disk_size: 5120
+  cloud_properties:
+    storage_account_name: "{{ premiumstorageAccount }}"
+- name: '10240'
+  disk_size: 10240
+  cloud_properties: {}
+- name: '10240premium'
+  disk_size: 10240
+  cloud_properties:
+    storage_account_name: "{{ premiumstorageAccount }}"
+- name: '20480'
+  disk_size: 20480
+  cloud_properties: {}
+- name: '30720'
+  disk_size: 30720
+  cloud_properties: {}
+- name: '51200'
+  disk_size: 51200
+  cloud_properties: {}
+- name: '76800'
+  disk_size: 76800
+  cloud_properties: {}
+- name: '102400'
+  disk_size: 102400
+  cloud_properties: {}
+- name: '153600'
+  disk_size: 153600
+  cloud_properties: {}
+- name: '204800'
+  disk_size: 204800
+  cloud_properties: {}
+- name: '307200'
+  disk_size: 307200
+  cloud_properties: {}
+- name: '512000'
+  disk_size: 512000
+  cloud_properties: {}
+- name: '768000'
+  disk_size: 768000
+  cloud_properties: {}
+- name: '1048576'
+  disk_size: 1048576
+  cloud_properties: {}
+- name: '2097152'
+  disk_size: 2097152
+  cloud_properties: {}
+- name: '5242880'
+  disk_size: 5242880
+  cloud_properties: {}
+- name: '10485760'
+  disk_size: 10485760
+  cloud_properties: {}
+- name: '16777216'
+  disk_size: 16777216
+  cloud_properties: {}
+compilation:
+  workers: 4
+  network: boshvnet
+  reuse_compilation_vms: true
+  vm_type: Standard_F4s

@@ -54,16 +54,14 @@ instance_groups:
         require_ssl: false
         peer_require_ssl: false
   stemcell: trusty
-  vm_type: Standard_DS2_v2
+  vm_type: default
   persistent_disk_type: 5120premium
 
 - name: master
-  instances: 1
+  instances: 2
   networks:
   - name: *network-name
     default: [dns, gateway]
-    cloud_properties:
-      load_balancer: {{ lbName }}
   jobs:
   - name: kubernetes-api
     release: kubo
@@ -89,7 +87,7 @@ instance_groups:
     properties:
       kubernetes-api-url: *kubo_url
   stemcell: trusty
-  vm_type: Standard_DS2_v2
+  vm_type: default_load_balanced
 
 - name: worker
   instances: 3
@@ -126,7 +124,7 @@ instance_groups:
     properties:
       kubernetes-api-url: *kubo_url
   stemcell: trusty
-  vm_type: Standard_DS2_v2
+  vm_type: default
   persistent_disk_type: 10240premium
 
 update:

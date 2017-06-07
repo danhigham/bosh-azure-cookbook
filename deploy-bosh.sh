@@ -89,11 +89,6 @@ archive=$(ls *.tar.gz | head -n 1)
 tar -xvzf $archive --exclude='deploy-bosh.sh' --strip 1
 
 working_directory=$(pwd)
-sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> cloud_config.yml/' $working_directory/cloud_config.template.yml | sh
-cp cloud_config.yml $HOME
-
-# Apply cloud_config
-su -l pivotal sh -c "bosh -n --tty -e bosh-azure update-cloud-config cloud_config.yml"
 
 if [ -d "recipes/$recipe" ]; then
   stemcellCount=$(cat recipes/$recipe/index.json | jq -r ".stemcells | length")
@@ -121,25 +116,33 @@ if [ -d "recipes/$recipe" ]; then
   # Create load balancer if required
   if [ "$loadBalancer" -gt 0 ]; then
     export lbName=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.name")
-    export ipConfig=$(az network lb create -g $vmResGroup -n $lbName --public-ip-address-allocation static | jq ".loadBalancer.frontendIPConfigurations[0].name")
-    export lbIPAddress=$(az network public-ip list -g $vmResGroup --query "[?ipConfiguration.id=='/subscriptions/$sub/resourceGroups/kubo/providers/Microsoft.Network/loadBalancers/$lbName/frontendIPConfigurations/$ipConfig'].ipAddress" --output tsv)
+    export ipConfig=$(az network lb create -g $vmResGroup -n $lbName --public-ip-address-allocation static | jq -r ".loadBalancer.frontendIPConfigurations[0].name")
+    export lbIPAddress=$(az network public-ip list -g $vmResGroup --query "[?ipConfiguration.id=='/subscriptions/$sub/resourceGroups/$vmResGroup/providers/Microsoft.Network/loadBalancers/$lbName/frontendIPConfigurations/$ipConfig'].ipAddress" --output tsv)
 
     lbRuleCount=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules | length")
 
     # Configure forwarding rules for lb
     i=0
-    while [ "$i" -le "$lbRuleCount" ]; do
+    while [ "$i" -lt "$lbRuleCount" ]; do
 
       externalPort=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].externalPort")
       internalPort=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].internalPort")
       protocol=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].protocol")
+      ruleName=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].name")
 
-      az network lb rule create -g $vmResGroup --lb-name $lbName -n MyLbRule --protocol $protocol --frontend-port $externalPort --backend-port $internalPort
+      az network lb rule create -g $vmResGroup --lb-name $lbName -n $ruleName --protocol $protocol --frontend-port $externalPort --backend-port $internalPort
 
       i=$(($i + 1))
     done
 
   fi
+
+  # Template cloud config
+  sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> cloud_config.yml/' $working_directory/recipes/$recipe/cloud_config.yml | sh
+  cp cloud_config.yml $HOME
+
+  # Apply cloud_config
+  su -l pivotal sh -c "bosh -n --tty -e bosh-azure update-cloud-config cloud_config.yml"
 
   # Get IPs from public pool
   export poolIP0=$(az network public-ip list | jq -r "map(select(.resourceGroup == \"${vmResGroup,,}\") | select(.tags == {\"poolIp\": \"True\"}))[0].ipAddress")
