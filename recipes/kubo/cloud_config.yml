@@ -40,7 +40,7 @@ vm_types:
     ephemeral_disk:
       use_root_disk: true
     storage_account_name: "{{ premiumstorageAccount }}"
-    load_balancer: {{ lb-name }}
+    load_balancer: {{ lbName }}
 
 - name: Standard_F4s
   cloud_properties:
