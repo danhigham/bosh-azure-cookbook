@@ -118,7 +118,7 @@ if [ -d "recipes/$recipe" ]; then
     export lbName=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.name")
     export ipConfig=$(az network lb create -g $vmResGroup -n $lbName --public-ip-address-allocation static | jq -r ".loadBalancer.frontendIPConfigurations[0].name")
     export lbIPAddress=$(az network public-ip list -g $vmResGroup --query "[?ipConfiguration.id=='/subscriptions/$sub/resourceGroups/$vmResGroup/providers/Microsoft.Network/loadBalancers/$lbName/frontendIPConfigurations/$ipConfig'].ipAddress" --output tsv)
-
+    lbpoolPostfix='bepool'
     lbRuleCount=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules | length")
 
     # Configure forwarding rules for lb
@@ -131,7 +131,7 @@ if [ -d "recipes/$recipe" ]; then
       ruleName=$(cat recipes/$recipe/index.json | jq -r ".infra.loadBalancer.rules[$i].name")
 
       # create load balancer rule along with matching NSG ingress rule
-      az network lb rule create -g $vmResGroup --lb-name $lbName -n $ruleName --protocol $protocol --frontend-port $externalPort --backend-port $internalPort
+      az network lb rule create -g $vmResGroup --lb-name $lbName -n $ruleName --protocol $protocol --frontend-port $externalPort --backend-port $internalPort --frontend-ip-name LoadBalancerFrontEnd --backend-pool-name $lbName$lbpoolPostfix
       az network nsg rule create -g $vmResGroup --nsg-name nsg-bosh --protocol $protocol --destination-port-range $externalPort --priority $(($i + 2000)) -n $ruleName
 
       i=$(($i + 1))
