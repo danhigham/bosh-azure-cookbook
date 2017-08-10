@@ -4,9 +4,9 @@
     "https://bosh.io/d/stemcells/bosh-azure-hyperv-ubuntu-trusty-go_agent"
   ],
   "releases": [
-    "https://storage.googleapis.com/kubo-etcd/kubo-etcd-release.108%2Bdev.2.tgz",
-    "https://boshreleases.blob.core.windows.net/cookbookreleases/kubo.tgz",
-    "https://bosh.io/d/github.com/cf-platform-eng/docker-boshrelease?v=28.0.1"
+    "https://storage.googleapis.com/kubo-etcd/latest-kubo-etcd.tgz",
+    "https://boshreleases.blob.core.windows.net/cookbookreleases/kubo-0.0.5.tgz",
+    "https://bosh.io/d/github.com/cf-platform-eng/docker-boshrelease"
   ],
   "infra": {
     "loadBalancer" : {

@@ -1,7 +1,7 @@
 name: kubo
 
 releases:
-- name: etcd
+- name: kubo-etcd
   version: latest
 - name: kubo
   version: latest
@@ -48,7 +48,7 @@ instance_groups:
   - name: &network-name boshvnet
   jobs:
   - name: etcd
-    release: etcd
+    release: kubo-etcd
     properties:
       etcd:
         require_ssl: false
@@ -99,6 +99,9 @@ instance_groups:
   - name: docker
     release: docker
     properties:
+      tls_cacert: ((kubo-tls.ca))
+      tls_cert: ((kubo-tls.certificate))
+      tls_key: ((kubo-tls.private_key))
       docker:
         flannel: true
         iptables: false
