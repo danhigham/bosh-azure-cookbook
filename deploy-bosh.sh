@@ -62,6 +62,7 @@ az storage table create --account-name $storageAccount --account-key $storageKey
 
 su -l pivotal sh -c "
 bosh --tty create-env /tmp/bosh-deployment/bosh.yml \
+  -o /tmp/bosh-deployment/uaa.yml \
   -o /tmp/bosh-deployment/azure/cpi.yml \
   -o /tmp/bosh-deployment/misc/config-server.yml \
   -o /tmp/bosh-deployment/local-dns.yml \
