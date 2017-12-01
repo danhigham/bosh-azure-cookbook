@@ -14,7 +14,7 @@ HOME=/home/pivotal
 git clone https://github.com/cloudfoundry/bosh-deployment /tmp/bosh-deployment
 
 # get bosh cli
-wget https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-2.0.16-linux-amd64 -O /usr/bin/bosh
+wget https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-2.0.45-linux-amd64 -O /usr/bin/bosh
 chmod +x /usr/bin/bosh
 
 # set up azure stuff
