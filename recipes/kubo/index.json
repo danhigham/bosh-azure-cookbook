@@ -5,7 +5,7 @@
   ],
   "releases": [
     "https://storage.googleapis.com/kubo-etcd/latest-kubo-etcd.tgz",
-    "https://boshreleases.blob.core.windows.net/cookbookreleases/kubo-0.0.5.tgz",
+    "https://boshreleases.blob.core.windows.net/cookbookreleases/kubo-0.9.0.tgz",
     "https://bosh.io/d/github.com/cf-platform-eng/docker-boshrelease"
   ],
   "infra": {
