@@ -68,6 +68,7 @@ bosh --tty create-env /tmp/bosh-deployment/bosh.yml \
   -o /tmp/bosh-deployment/local-dns.yml \
   --state=/home/pivotal/azure-bosh-director.yml \
   --vars-store=/home/pivotal/azure-bosh-director-creds.yml  \
+  -v internal_dns=[168.63.129.16] \
   -v director_name=azure-bosh \
   -v internal_cidr=10.2.0.0/24 \
   -v internal_gw=10.2.0.1 \

@@ -287,7 +287,7 @@
             "settings": {
               "fileUris": [
                 "https://raw.githubusercontent.com/danhigham/bosh-azure-cookbook/master/deploy-bosh.sh",
-                "https://github.com/danhigham/bosh-azure-cookbook/archive/0.2.11.tar.gz"
+                "https://github.com/danhigham/bosh-azure-cookbook/archive/0.2.12.tar.gz"
               ]
             },
             "protectedSettings": {
