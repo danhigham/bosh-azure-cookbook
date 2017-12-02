@@ -65,6 +65,7 @@ bosh --tty create-env /tmp/bosh-deployment/bosh.yml \
   -o /tmp/bosh-deployment/uaa.yml \
   -o /tmp/bosh-deployment/azure/cpi.yml \
   -o /tmp/bosh-deployment/misc/config-server.yml \
+  -o /tmp/bosh-deployment/local-dns.yml \
   --state=/home/pivotal/azure-bosh-director.yml \
   --vars-store=/home/pivotal/azure-bosh-director-creds.yml  \
   -v internal_dns=[168.63.129.16] \
@@ -148,11 +149,13 @@ if [ -d "recipes/$recipe" ]; then
   sed -e 's/{{ *\([^} ]*\) *}}/$\1/g' -e 's/^/echo "/' -e 's/$/" >> cloud_config.yml/' $working_directory/recipes/$recipe/cloud_config.yml | sh
   cp cloud_config.yml $HOME
 
+
   # Apply cloud_config
   su -l pivotal sh -c "bosh -n --tty -e bosh-azure update-cloud-config cloud_config.yml"
 
-  if [ -f runtime_config.yml ]; then
-      su -l pivotal sh -c "bosh -n --tty -e bosh-azure update-runtime-config runtime_config.yml"
+  if [ -f $working_directory/recipes/$recipe/runtime_config.yml ]; then
+    cp $working_directory/recipes/$recipe/runtime_config.yml $HOME
+    su -l pivotal sh -c "bosh -n --tty -e bosh-azure update-runtime-config runtime_config.yml"
   fi
 
   # Get IPs from public pool
