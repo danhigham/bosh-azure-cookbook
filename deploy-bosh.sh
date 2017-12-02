@@ -65,7 +65,6 @@ bosh --tty create-env /tmp/bosh-deployment/bosh.yml \
   -o /tmp/bosh-deployment/uaa.yml \
   -o /tmp/bosh-deployment/azure/cpi.yml \
   -o /tmp/bosh-deployment/misc/config-server.yml \
-  -o /tmp/bosh-deployment/local-dns.yml \
   --state=/home/pivotal/azure-bosh-director.yml \
   --vars-store=/home/pivotal/azure-bosh-director-creds.yml  \
   -v internal_dns=[168.63.129.16] \
@@ -87,6 +86,8 @@ su -l pivotal sh -c "bosh --tty -e 10.2.0.10 --ca-cert <(bosh int azure-bosh-dir
 
 adminPassword=$(ruby -ryaml -e "puts YAML::load(open(ARGV.first).read)['admin_password']" /home/pivotal/azure-bosh-director-creds.yml)
 su -l pivotal sh -c "bosh --tty -e bosh-azure login --client=admin --client-secret=$adminPassword"
+
+echo "export BOSH_CLIENT=admin; export BOSH_CLIENT_SECRET=$adminPassword;" >> /home/pivotal/.profile
 
 # Extract the recipe book
 archive=$(ls *.tar.gz | head -n 1)
@@ -149,6 +150,10 @@ if [ -d "recipes/$recipe" ]; then
 
   # Apply cloud_config
   su -l pivotal sh -c "bosh -n --tty -e bosh-azure update-cloud-config cloud_config.yml"
+
+  if [ -f runtime_config.yml ]; then
+      su -l pivotal sh -c "bosh -n --tty -e bosh-azure update-runtime-config runtime_config.yml"
+  fi
 
   # Get IPs from public pool
   export poolIP0=$(az network public-ip list | jq -r "map(select(.resourceGroup == \"${vmResGroup,,}\") | select(.tags == {\"poolIp\": \"True\"}))[0].ipAddress")
